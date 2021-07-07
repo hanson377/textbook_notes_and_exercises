@@ -1,0 +1,320 @@
+---
+title: "Chapter 3 Exercises: Sampling the Imaginary"
+output:
+  github_document:
+    fig_width: 9
+    fig_height: 4
+---
+
+**Setup**  
+For the next few questions, we have been supplied a posterior.  From this posterior, we will make calculations to answer a series of questions.  This posterior is defined below.  
+
+```{r posterior definition}
+library(ggplot2)
+
+p_grid <- seq(0,1,length.out=1000)
+prior <- rep(1,1000)
+likelihood <- dbinom(6,9,prob=p_grid)
+posterior <- likelihood*prior
+posterior <- posterior/sum(posterior)
+
+set.seed(100)
+samples <- data.frame(value=sample(p_grid,posterior,size=10000,replace=TRUE))
+ggplot(samples,aes(x=value)) + geom_density() + xlab('Probability') + ylab('Density') + scale_x_continuous(labels=scales::percent)
+```
+
+**Question E1:**  
+How much posterior probability lies below p = 0.2?  
+
+**Answer E1:**  
+To answer this, we simply sum the area of the posterior below 0.2.  When we do this, we find the probability to be around 0.04%.  
+
+```{r answer e1}
+ggplot(samples,aes(x=value)) + geom_density() + xlab('Probability') + ylab('Density') + scale_x_continuous(labels=scales::percent) + geom_vline(xintercept=0.2,linetype='dashed',colour='red')
+
+(sum(samples$value < 0.2)/10000)*100
+```
+
+* * *  
+* * *  
+
+**Question E2:**  
+How much posterior probability lies above p = 0.8?  
+
+**Answer E2:**  
+To answer this, we simply use the same method above but change our conditional statement within the sum function.  Now, we are simply summing the total area to the right of the red line below.  
+
+When we do this, we find this probability to be approximately 11.16%.
+
+```{r answer e2}
+ggplot(samples,aes(x=value)) + geom_density() + xlab('Probability') + ylab('Density') + scale_x_continuous(labels=scales::percent) + geom_vline(xintercept=0.8,linetype='dashed',colour='red')
+
+(sum(samples$value > 0.8)/10000)*100
+```  
+
+* * *  
+* * *  
+
+**Question E3:**  
+How much posterior probability lies between p = 0.2 and p = 0.8?  
+
+**Answer E3:**  
+Now, we are simply summing the area between the two red lines plotted below. As a result, there is an 88.8% chance that our probability lies between 0.2 and 0.8.   
+
+```{r answer e3}
+ggplot(samples,aes(x=value)) + geom_density() + xlab('Probability') + ylab('Density') + scale_x_continuous(labels=scales::percent) + geom_vline(xintercept=0.2,linetype='dashed',colour='red') + geom_vline(xintercept=0.8,linetype='dashed',colour='red')
+
+(sum(samples$value > 0.2 & samples$value < 0.8)/10000)*100
+```  
+
+* * *  
+* * *  
+
+**Question E4:**  
+20% of the posterior probability lies below which value of p?
+
+**Answer E4:**  
+Note that this is the different question than before.  Now we would like to know at which point the area below it is equal to ~20%.  This answer is ~ 0.5185.  
+
+```{r answer e4}
+percentile <- quantile(samples$value,0.2)
+
+ggplot(samples,aes(x=value)) + geom_density() + xlab('Probability') + ylab('Density') + scale_x_continuous(labels=scales::percent) + geom_vline(xintercept=percentile,linetype='dashed',colour='red')
+
+percentile
+
+```  
+
+* * *  
+* * *   
+
+
+**Question E5:**  
+20% of the posterior probability lies above which value of p?
+
+**Answer E5:**  
+Essentially, we are being asked "80% of the posterior probability lies below which value of p?" as we know that 1-0.2 = 0.8.  The answer is ~ `quantile(samples$value,0.8)`
+
+```{r answer e5}
+percentile <- quantile(samples$value,0.8)
+
+ggplot(samples,aes(x=value)) + geom_density() + xlab('Probability') + ylab('Density') + scale_x_continuous(labels=scales::percent) + geom_vline(xintercept=percentile,linetype='dashed',colour='red')
+
+percentile
+
+```  
+
+* * *  
+* * *   
+
+
+**Question E6:**  
+Which values of p contain the narrowest interval equal to 66% of the posterior probabilty?  
+
+**Answer E6:**  
+To answer this, we must calculate the HDPI (highest posterior density interval).  Although this sounds complicated, R makes this very simple to do.  
+
+```{r answer e6}
+library(rethinking)
+
+HPDI(samples$value,prob=0.66)  
+```  
+
+Above, we can see that the HDPI implies that the narrowest interval containing 66% of the interval is `HPDI(samples$value,prob=0.66)  
+`.  Let us now compare this to the estimate we'd make if we simply used the percentile compatability interval.  
+
+```{r ci calc}
+PI(samples$value,prob=0.66)
+```  
+
+As we might expect, these numbers are slightly different but mostly the same. This is expected, as the posterior distribution is nearly Gaussian.  If our distribution was not nearly Gaussian, we'd expect these numbers to differ drastically.  
+
+```{r compare interval visually,echo = FALSE}
+library(gridExtra)
+
+view1 <- ggplot(samples,aes(x=value)) + geom_density() + xlab('Probability') + ylab('Density') + scale_x_continuous(labels=scales::percent) + geom_vline(xintercept=0.5085085,linetype='dashed',colour='red') + geom_vline(xintercept=0.7737738,linetype='dashed',colour='red')
+
+view2 <- ggplot(samples,aes(x=value)) + geom_density() + xlab('Probability') + ylab('Density') + scale_x_continuous(labels=scales::percent) + geom_vline(xintercept=0.5025025,linetype='dashed',colour='red') + geom_vline(xintercept=0.7697698,linetype='dashed',colour='red')
+
+grid.arrange(view1,view2,nrow=2)
+```  
+
+* * *
+* * *  
+
+**Question M1-2:**  
+Suppose the globe tossing data had turned out to be 8 water in 15 tosses.  Construct the posterior distribution, using grid approximation.  Use the same flat prior as before.  Next, draw 10,000 samples and use the samples to calculate the 90% HDPI for p.  
+
+**Answer M1-M2:**  
+To do this, we simply create a new likelihood value and multiply it by the same prior as before.  Below, I calculate both the previous and current posterior distribution and then plot them side-by-side.  
+
+```{r new posterior}
+p_grid <- seq(0,1,length.out=1000)
+prior <- rep(1,1000)
+
+likelihood1 <- dbinom(6,9,prob=p_grid)
+likelihood2 <- dbinom(8,15,prob=p_grid)
+
+posterior1 <- likelihood1*prior
+posterior1 <- posterior1/sum(posterior1)
+
+posterior2 <- likelihood2*prior
+posterior2 <- posterior2/sum(posterior2)
+
+set.seed(100)
+sample1 <- data.frame(value=sample(p_grid,posterior1,size=10000,replace=TRUE))
+sample1$model <- '6 successes from 9'
+sample2 <- data.frame(value=sample(p_grid,posterior2,size=10000,replace=TRUE))
+sample2$model <- '8 successes from 15'
+
+samples <- rbind(sample1,sample2)
+ggplot(samples,aes(x=value,fill=model)) + geom_density(alpha=0.2) + theme(legend.position='bottom',legend.title=element_blank())
+```  
+
+Now, lets calculate the 90% HDPI for both distributions to understand how much our estimates can change with slightly different likelihoods.  
+
+```{r m2}
+HPDI(sample1$value,prob=0.90)  
+HPDI(sample2$value,prob=0.90)  
+```  
+
+The 90% HDPI for the new distribution is `r  HPDI(sample2$value,prob=0.90)` while the 90% HDPI for the previous posterior was `r HPDI(sample1$value,prob=0.90)`.
+
+**Hard 1:**  
+Using grid approximation, compute the posterior distribution for the probability of a birth being a boy.  Assume a uniform prior probability.  Which parameter value maximizes the posterior probability?
+
+```{r thing one}
+library(rethinking)
+data(homeworkch3)
+
+## from data, calculate likelihood of a boy
+boys <- (sum(birth1)+sum(birth2))
+trials <- (length(birth1)+length(birth2))
+
+p_grid <- seq(0,1,length.out=1000)
+prior <- rep(1,1000)
+
+likelihood <- dbinom(boys,trials,prob=p_grid)
+posterior <- likelihood*prior
+
+posterior <- posterior/sum(posterior)
+
+plot(p_grid,posterior)
+maximizing_point <- p_grid[which.max(posterior)]
+p_grid[which.max(posterior)]
+```  
+
+From the code above, we find that the p that maximizes the posterior is `r p_grid[which.max(posterior)]`  
+
+**Hard 2:**  
+Using the sample function, draw 10k random parameter values from the posterior distribution you calculated above.  Use these samples to estimate the 50%, 89%, and 97% highest posterior density intervals.  
+
+**Answer 2**:  
+Immediately below, I have plotted the distribution of the posterior we generated above.  Additionally, I've used the beta distribution (the conjugate) to validate my posterior generated above.  You can see that these distributions are nearly identical.  
+
+```{r sample}
+library(ggplot2)
+
+sample <- data.frame(value=rbinom(10000,size=trials,prob=p_grid[which.max(posterior)]),beta=rbeta(10000,boys,trials-boys))
+sample$percentage <- sample$value/200
+
+ggplot(sample) + geom_density(aes(x=beta)) + geom_density(aes(x=percentage))
+```  
+
+Now, let us go about calculating the HDPI.  
+
+```{r hdpi}
+library(rethinking)
+
+HPDI(sample$percentage,0.5)
+HPDI(sample$percentage,0.89)
+HPDI(sample$percentage,0.97)
+```  
+
+Above, we find that the HPDI for the following are:  
+
+50%: `r HPDI(sample$percentage,0.5)`  
+89%: `r HPDI(sample$percentage,0.89)`  
+97%: `r HPDI(sample$percentage,0.97)`    
+
+Additionally, because our posterior is nearly gaussian, we can use a simple quantile function to roughly estimate the above.  
+
+```{r quantiles}
+quantile(sample$percentage,c(0.5/2,1-(0.5/2)))
+quantile(sample$percentage,c(.11/2,1-(.11/2)))
+quantile(sample$percentage,c(0.03/2,1-(0.03/2)))
+```  
+50%: `r quantile(sample$percentage,c(0.5/2,1-(0.5/2)))`  
+89%: `r quantile(sample$percentage,c(.11/2,1-(.11/2)))`  
+97%: `r quantile(sample$percentage,c(0.03/2,1-(0.03/2)))`    
+
+We can see that these estimates are nearly identical to those above.  However, if our posterior was not gaussian, this would not be the case.  
+
+**Hard 3:**  
+Use rbinom to simulate 10k replicates of 200 births.  You should end up with 10k numbers, each one a count of boys out of 200 births.  Compare the distribution of predicted numbers of boys to the actual count in the data.  Does it look like the model fits the data well?  That is, does the distribution of predictions include the actual observation as a central, likely outcome?  
+
+**Answer 3:**  
+To answer this, we need to simulate some draws and then calculate the median of the distribution.  We'd expect the median to be around the observed value of 111.  
+
+As seen below, this is exactly what we get.    
+
+```{r sims}
+trials <- (length(birth1)+length(birth2))
+simulation=data.frame(value=rbinom(10000,size=trials,prob=p_grid[which.max(posterior)]))
+median(simulation$value)
+
+ggplot(simulation,aes(x=value)) + geom_density() + geom_vline(xintercept=median(simulation$value),linetype='dashed',colour='red')  
+```  
+
+**Hard 4**  
+Now compare 10k counts of boys from 100 simulated first borns only to the number of boys in the first births, birth1.  How does the model look in this light?  
+
+**Answer 4**  
+First, lets rerun our code from above, but change the number of trials from 200 to 100.  
+
+```{r rerun}
+trials <- length(birth1)
+simulation_first_born=data.frame(value=rbinom(10000,size=trials,prob=maximizing_point))
+
+ggplot(simulation_first_born,aes(x=value)) + geom_density() + geom_vline(xintercept=median(simulation_first_born$value),linetype='dashed',colour='red')  
+
+summary(birth1)
+summary(simulation_first_born)
+```
+
+When we do this, we find the median of our simulation of 100 births is ~55.  However, our data seems to imply the number should be closer to 51%.  This means our model is not great for modeling first-borns and we should rethink it.  
+
+**Hard 5**  
+The model assumes that the sex of first and second births are independent.  To check this assumption, focus now on seconds births that followed female first borns.  Compare 10k simulated counts fo boys only to those second births that followed girls.  
+
+To do this correctly, you need to count the number of first borns who were girls and simulate that many births, 10k times.  Compare the count of boys in your simulation to the actual observed count of boys following girls.  How does the model look in this light?  Any guesses as to what is going on in the data?  
+
+**Answer 5**  
+
+```{r inde}
+data <- data.frame(first=birth1,second=birth2)
+data$status <- ifelse(data$first==0,1,0)
+data <- subset(data,status==1)
+
+boys <- sum(data$second)
+trials <- nrow(data)
+
+p_grid <- seq(0,1,length.out=1000)
+prior <- rep(1,1000)
+
+likelihood <- dbinom(boys,trials,prob=p_grid)
+posterior <- likelihood*prior
+
+posterior <- posterior/sum(posterior)
+
+plot(p_grid,posterior)
+maximizing_point <- p_grid[which.max(posterior)]
+p_grid[which.max(posterior)]
+
+samples <- sample(p_grid,posterior,size=10000,replace=TRUE)
+
+simulation_second_born=data.frame(value=rbinom(10000,size=trials,prob=maximizing_point)/trials,value2=rbinom(10000,size=trials,prob=samples)/trials,value3=rbeta(10000,boys,trials-boys))
+summary(simulation_second_born)
+ggplot(simulation_second_born,aes(x=value)) + geom_density() + geom_vline(xintercept=median(simulation_second_born$value),linetype='dashed',colour='red')  
+
+```

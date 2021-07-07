@@ -1,0 +1,35 @@
+---
+title: "Chapter 3 Lab: Linear Regression"
+output:
+  github_document:
+    fig_width: 9
+    fig_height: 4
+---
+
+```{r load data and packages, include = FALSE}
+library(MASS)
+library(ISLR)
+library(ggplot2)
+library(dplyr)
+```
+
+**Question #1:**  
+What are the parameters of the binomial distribution for the probability of rolling either a 1 or a 20 on a 20-sided die, if we roll the die 12 times?  
+
+**Answer #1:**  
+Here, we are simply defining parameters k, n, and p for the situation described above.  
+
+n: 12  
+k: 1  
+p: 2/20 = 1/10  
+
+We can then use the code below to calculate the probability of this specific event:  
+
+```{r q1 calc}
+n = 12
+k = 1
+p = 1/10
+
+probability = choose(n,k)*(p^k)*((1-p)^(n-k))
+probability
+```  
