@@ -1,0 +1,121 @@
+---
+title: "Chapter 3 Exercises: Sampling the Imaginary"
+output:
+  github_document:
+    fig_width: 9
+    fig_height: 4
+---
+
+**Setup**
+For the next few questions, we have been supplied a posterior.  From this posterior, we will make calculations to answer a series of questions.  This posterior is defined below.
+
+```{r posterior definition}
+library(ggplot2)
+
+p_grid <- seq(0,1,length.out=1000)
+prior <- rep(1,1000)
+likelihood <- dbinom(6,9,prob=p_grid)
+posterior <- likelihood*prior
+posterior <- posterior/sum(posterior)
+
+set.seed(100)
+samples <- data.frame(value=sample(p_grid,posterior,size=10000,replace=TRUE))
+ggplot(samples,aes(x=value)) + geom_density() + xlab('Probability') + ylab('Density') + scale_x_continuous(labels=scales::percent)
+```
+
+**Question 4E1**  
+In the model definition below, which line is the likelihood?  
+
+y ~ Normal(µ,ß)
+µ ~ Normal(0,10)  
+ß ~ exponential(1)  
+
+**Answer**  
+
+The likelihood is y.   
+
+* * *  
+
+**Question 4E2**  
+In the model definition above, just how many parameters are in the posterior distribution?
+
+**Answer**  
+
+We have three total parameters.  The likelihood, mu, and sigma.  
+
+* * *  
+
+**Question 4E3**  
+In the model definition below, which line is the linear model?  How many parameters are in the posterior?  
+
+y ~ Normal(µ,ß)  
+u = a + b*x  
+a = Normal(0,10)  
+b ~ Normal(0,1)  
+ß ~ Exponential(2)  
+
+**Answer**  
+
+The linear model is u = a + b*x.   We have 5 parameters.  
+
+* * *    
+
+**Question 4M1**  
+In the model definition below, simulated observed values y from the prior (not the posterior)
+
+y ~ Normal(u,o)  
+u ~ Normal(0,10)  
+o ~ Exponential(1)  
+
+**Answer**  
+
+```{r sample from prior}  
+sample_mu <- rnorm(1000000,0,10)
+sample_sigma <- rexp(1000000,1)  
+
+prior <- rnorm(1000000,sample_mu,sample_sigma)
+
+dens(prior)
+```
+
+* * *    
+
+**Question 4M2**  
+Translate the model above into a quap formula.  
+
+**Answer**  
+
+```{r sample from prior}  
+
+y ~ dnorm(mu,sigma),
+mu ~ dnorm(0,10),
+sigma ~ dexp(1)
+
+```
+
+* * *    
+
+**Question 4M7**  
+Refit model m4.3 from the chapter, but omit the mean and weight xbar this time.  Compare the new model's posterior to that of the original model.  In particular, look at the covariance among the parameters.  What is different?  Then compare the posterior predictions of both models.  
+
+**Answer**  
+
+```{r modeling}  
+library(rethinking)  
+
+data(Howell1)
+d <- Howell1
+d2 <- d[d$age >= 18,]  
+
+xbar <- mean(d2$weight)  
+
+original <- quap(
+  alist(
+    height ~ dnorm(mu,sigma),
+    mu <- a + b*(weight - xbar),
+    a ~ dnorm(178,20),
+    b ~ dlnorm(0,1),
+    sigma ~ dunif(0,50)
+  ), data=d2
+)
+```

@@ -1,0 +1,31 @@
+---
+title: "Chapter 12 Exercises: Normal Distribution"
+output:
+  github_document:
+    fig_width: 7
+    fig_height: 4
+---
+
+```{r load packages,include = FALSE}
+set.seed(1431)
+library(ggplot2)
+library(dplyr)
+```
+
+**Question #1:**
+What is the probability of observing a value five sigma greater than the mean or more?
+
+**Answer #1:**
+We can solve this by generating a range of values with mean = 0 and sd = 1.  From this, we can integrate from 5 SDs to infinity.
+
+```{r calc q1}
+data <- data.frame(value = rnorm(500000,mean=0,sd=1))
+ggplot(data,aes(x=value)) + geom_density() + geom_vline(xintercept=5,linetype='dashed',colour='red') + xlab('Temperature') + ylab('Density')
+
+integrate(function(x) dnorm(x,mean=0,sd=1),5,1000)
+```
+
+By simply looking at the distribution above, we can see that there is an extremely low probability of a value greater than 5 SDs from the mean.  It is clear this value is nearly zero.  But how close to zero is this value?  We can calculate this by integrating from 5 to positive infinity.  I've done this above and we can see that the probability is around .00000008%.
+
+* * *
+* * *

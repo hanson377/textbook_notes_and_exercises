@@ -1,0 +1,87 @@
+---
+title: "Chapter 7 Exercises: Bayesian Priors with Probability Distributions"
+output:
+  github_document:
+    fig_width: 7
+    fig_height: 4
+---
+
+**Question #1:**
+A friend finds a coin on the ground, flips it, and gets six heads in a row and then one tails.  Give the beta distribution that describes this.  Use integration to determine the probability that the true rate of flipping heads is between 0.4 and 0.6, reflecting that the coin is reasonably fair.
+
+**Answer #1:**
+First, let us plot the beta distribution of interest (beta(1,6)).  We will then integrate between 0.4 and 0.6 to calculate the probability that the coin is reasonably fair.
+
+```{r q1 calc}
+p = seq(0,1,length=100)
+plot(p,dbeta(p,6,1))
+abline(v=.4)
+abline(v=.6)
+```
+
+To answer our question, we are strictly interested in summing the area under the curve to the right of 0.6 in the plot above, as designated above with the vertical line.  We can do this by using the integrate function in R.
+
+```{r q1b calc}
+integrate(function(x) dbeta(x,6,1),.4,.6)
+```
+
+From the above, we conclude that there is about a 4.2% probability that the coin is reasonably fair.
+
+* * *
+* * *
+
+**Question 2:**
+Come up with a prior probability that the coin is far.  Use a beta distribution such that there is at least a 95% chance that the true rate of flipping heads is between 0.4 and 0.6.
+
+**Answer 2:**
+To approximate the above, we need to find a beta distribution that contains 95% of its values between 0.4 and 0.6.  Essentially, we are solving this equation:
+
+0.95 = integrate(function(x) dbeta(x,a,b),.4,.6)
+
+To simplify this problem a bit, I will assume a=b, as we are ultimately interested in these two values matching.  We can write a function in R to do this.
+
+```{r q2 calc}
+prior_calculation <- function(heads,tails) {
+  integrate(function(x) dbeta(x,heads,tails),.4,.6)
+}
+
+prior_calculation(10,10)
+prior_calculation(20,20)
+prior_calculation(30,30)
+prior_calculation(40,40)
+prior_calculation(50,50)
+prior_calculation(60,60)
+
+prior_calculation(48,48)
+
+plot(p,dbeta(p,48,48))
+```
+
+In the code above, I write a simple function that takes an integer and adds it to our already observed data.  We can then manually test a few values and arrive at a value that provides us with a beta distribution that contains 95% of its values between 0.4 and 0.6.  The resulting distribution is beta(48,48).  This distribution is plotted above.  
+
+
+* * *
+* * *
+
+**Question 3:**
+Now see how many more heads (with no more tails) it would take to convince you that there is a reasonable chance that the coin is NOT fair.  In this case, lets say that this means that our belief in the rate of the coin being between 0.4 and 0.6 drops below 0.5.
+
+**Answer 3:**
+We will start with the prior distribution from above, beta(48,48).  From here, we will add 'head' events until the integral from 0.4 to 0.6 is below 0.5.
+
+```{r q3 calc}
+prior_calculation <- function(heads) {
+  integrate(function(x) dbeta(x,48+heads,48),.4,.6)
+}
+
+prior_calculation(10)
+prior_calculation(20)
+prior_calculation(30)
+
+prior_calculation(24)
+
+
+plot(p,dbeta(p,48+24,48))
+```
+
+Above, we see that it would take about 24 straight heads to get us to a point where our belief that the probability of a fair coin drops below 50%.  This distribution can be modeled with the beta distribution beta(72,48).
